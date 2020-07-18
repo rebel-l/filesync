@@ -1,8 +1,12 @@
+// TODO
 package main
 
 import (
 	"errors"
 	"fmt"
+	"strings"
+
+	"gihub.com/rebel-l/mp3sync/mp3files"
 
 	"github.com/fatih/color"
 
@@ -32,6 +36,7 @@ func main() {
 	fmt.Printf("%s %s\n", description.Sprint("Destination:"), info.Sprint(destination))
 
 	fmt.Println()
+
 	if err := do(); err != nil {
 		_, _ = errFormat.Printf("MP3 sync finished with error: %v\n", err)
 	} else {
@@ -46,6 +51,18 @@ func do() error {
 
 	if !osutils.FileOrPathExists(destination) {
 		return fmt.Errorf("%w: %s", errPathNotExisting, destination)
+	}
+
+	fileList, err := mp3files.GetFileList(source)
+	if err != nil && !strings.Contains(err.Error(), "100 files reached") {
+		// TODO: remove temporary check for file limit check
+		return err
+	}
+
+	listFormat := color.New(color.FgHiBlue)
+	// TODO: progress bar
+	for _, v := range fileList {
+		_, _ = listFormat.Println(v.GetName())
 	}
 
 	return nil
