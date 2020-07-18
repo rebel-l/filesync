@@ -84,5 +84,20 @@ func getFileName(f mp3files.File) (string, error) {
 		name += " - " + track
 	}
 
-	return name + " - " + tag.Title() + mp3files.Extension, nil
+	return replaceChars(name + " - " + tag.Title() + mp3files.Extension), nil
+}
+
+func replaceChars(s string) string {
+	chars := map[string]string{
+		":":  ";",
+		"\\": "",
+		"/":  "",
+		"?":  "",
+	}
+
+	for k, v := range chars {
+		s = strings.Replace(s, k, v, -1)
+	}
+
+	return s
 }
