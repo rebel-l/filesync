@@ -6,13 +6,12 @@ import (
 	"fmt"
 	"strings"
 
-	"gihub.com/rebel-l/mp3sync/transform"
-
-	"gihub.com/rebel-l/mp3sync/mp3files"
-
 	"github.com/fatih/color"
 
 	"github.com/rebel-l/go-utils/osutils"
+	"github.com/rebel-l/mp3sync/mp3files"
+	"github.com/rebel-l/mp3sync/sync"
+	"github.com/rebel-l/mp3sync/transform"
 )
 
 const (
@@ -40,8 +39,12 @@ func main() {
 	fmt.Println()
 
 	if err := do(); err != nil {
+		fmt.Println()
+
 		_, _ = errFormat.Printf("MP3 sync finished with error: %v\n", err)
 	} else {
+		fmt.Println()
+
 		_, _ = title.Println("MP3 sync finished successful!")
 	}
 }
@@ -61,15 +64,16 @@ func do() error {
 		return err
 	}
 
-	listFormat := color.New(color.FgHiBlue)
 	// TODO: progress bar
 	for _, v := range fileList {
-		newFileName, err := transform.Do(destination, v)
+		destinatonFileName, err := transform.Do(destination, v)
 		if err != nil {
-			return err
+			return err // TODO: add errors to stack and log to file at the end
 		}
 
-		_, _ = listFormat.Println(newFileName)
+		if err := sync.Do(v, destinatonFileName, true); err != nil { // TODO: preview should be controlled by script parameter
+			return err // TODO: add errors to stack and log to file at the end
+		}
 	}
 
 	return nil

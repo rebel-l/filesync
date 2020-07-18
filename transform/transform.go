@@ -10,7 +10,7 @@ import (
 
 	"github.com/bogem/id3v2"
 
-	"gihub.com/rebel-l/mp3sync/mp3files"
+	"github.com/rebel-l/mp3sync/mp3files"
 )
 
 const (
