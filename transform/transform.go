@@ -17,6 +17,8 @@ const (
 	defaultSubfolder  = "default"
 	numericSubfolder  = "#"
 	minDirectoryParts = 2
+	frameIDDisk       = "TPOS"
+	frameIDTrack      = "TRCK"
 )
 
 var (
@@ -68,12 +70,12 @@ func getFileName(f mp3files.File) (string, error) {
 		name += " (" + tag.Year() + ")"
 	}
 
-	disk := tag.GetTextFrame("TPOS").Text
+	disk := tag.GetTextFrame(frameIDDisk).Text
 	if disk != "" {
 		name += " - " + disk
 	}
 
-	track := tag.GetTextFrame("TRCK").Text
+	track := tag.GetTextFrame(frameIDTrack).Text
 	if track != "" {
 		if len(track) == 1 {
 			track = "0" + track
