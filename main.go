@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"strings"
 
+	"gihub.com/rebel-l/mp3sync/transform"
+
 	"gihub.com/rebel-l/mp3sync/mp3files"
 
 	"github.com/fatih/color"
@@ -62,7 +64,12 @@ func do() error {
 	listFormat := color.New(color.FgHiBlue)
 	// TODO: progress bar
 	for _, v := range fileList {
-		_, _ = listFormat.Println(v.GetName())
+		newFileName, err := transform.Do(destination, v)
+		if err != nil {
+			return err
+		}
+
+		_, _ = listFormat.Println(newFileName)
 	}
 
 	return nil

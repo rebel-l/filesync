@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	allowedFileExtension = ".mp3"
+	Extension = ".mp3"
 )
 
 var (
@@ -26,12 +26,13 @@ func GetFileList(path string) (Files, error) {
 			return fmt.Errorf("%w: %v", ErrFileList, err)
 		}
 
-		if strings.ToLower(filepath.Ext(info.Name())) == allowedFileExtension {
+		if strings.ToLower(filepath.Ext(info.Name())) == Extension {
 			i++
-			list = append(list, File{Path: path, Info: info})
+			dir, _ := filepath.Split(path)
+			list = append(list, File{Path: dir, Info: info})
 		}
 
-		if i > 100 { // nolint:gomnd
+		if i > 500 { // nolint:gomnd
 			// TODO: remove, just temporary
 			return fmt.Errorf("100 files reached")
 		}
