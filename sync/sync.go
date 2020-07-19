@@ -6,10 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/fatih/color"
-
 	"github.com/rebel-l/go-utils/osutils"
-	"github.com/rebel-l/mp3sync/mp3files"
 )
 
 var (
@@ -17,33 +14,15 @@ var (
 	ErrCreateDirectory = errors.New("failed to create destination directory")
 )
 
-func Do(source mp3files.File, destination string, preview bool) error {
-	if osutils.FileOrPathExists(destination) {
-		destInfo, err := os.Lstat(destination)
-		if err != nil {
-			return fmt.Errorf("%w: %v", ErrFileInfo, err)
-		}
-
-		if source.IsInSync(destInfo) {
-			return nil
-		}
-	}
-
-	destPath, _ := filepath.Split(destination)
+func Do(file File) error {
+	destPath, _ := filepath.Split(file.Destination)
 	if err := osutils.CreateDirectoryIfNotExists(destPath); err != nil {
 		return fmt.Errorf("%w: %v", ErrCreateDirectory, err)
 	}
 
-	if preview {
-		listFormat := color.New(color.FgHiBlue)
-		_, _ = listFormat.Println(destination)
-
-		return nil
-	}
-
-	if err := osutils.CopyFile(source.GetName(), destination); err != nil {
+	if err := osutils.CopyFile(file.Source.GetName(), file.Destination); err != nil {
 		return err
 	}
 
-	return os.Chtimes(destination, source.Info.ModTime(), source.Info.ModTime())
+	return os.Chtimes(file.Destination, file.Source.Info.ModTime(), file.Source.Info.ModTime())
 }

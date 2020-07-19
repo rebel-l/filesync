@@ -26,7 +26,7 @@ var ErrParseTag = errors.New("failed to parse mp3 tag")
 func Do(path string, f mp3files.File) (string, error) {
 	name, err := getFileName(f)
 	if err != nil {
-		return "", fmt.Errorf("%w: %v", ErrParseTag, err)
+		return "", fmt.Errorf("%w from %s: %v", ErrParseTag, f.GetName(), err)
 	}
 
 	return filepath.Join(path, getSubFolder(f.Path), name), nil
@@ -95,6 +95,8 @@ func replaceChars(s string) string {
 		"'":  ",",
 		"*":  "x",
 		"+":  "x",
+		"[":  "(",
+		"]":  ")",
 	}
 
 	for k, v := range chars {

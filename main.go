@@ -3,8 +3,11 @@ package main
 
 import (
 	"errors"
-	"flag"
 	"fmt"
+	"strings"
+	"time"
+
+	"github.com/c-bata/go-prompt"
 
 	"github.com/fatih/color"
 
@@ -23,17 +26,15 @@ const (
 var (
 	errPathNotExisting = errors.New("path does not exist")
 	errFormat          = color.New(color.FgRed)
-	previewFlag        *bool // nolint: gochecknoglobals
+	description        = color.New(color.FgGreen)  // nolint: gochecknoglobals
+	listFormat         = color.New(color.FgHiBlue) // nolint: gochecknoglobals
 )
 
 func main() {
-	flags()
-
 	title := color.New(color.Bold, color.FgGreen)
 	_, _ = title.Println("MP3 sync started ...")
 	fmt.Println()
 
-	description := color.New(color.FgGreen)
 	info := color.New(color.FgYellow)
 
 	fmt.Printf("%s %s\n", description.Sprint("Source:"), info.Sprint(source))
@@ -61,37 +62,129 @@ func do() error {
 		return fmt.Errorf("%w: %s", errPathNotExisting, destination)
 	}
 
-	fileList, err := mp3files.GetFileList(source)
+	fileList, err := readFileList()
 	if err != nil {
 		return err
 	}
 
-	var bar pb.Progressor
-	if *previewFlag {
-		bar = pb.New(pb.EngineBlackhole, len(fileList))
-	} else {
-		bar = pb.New(pb.EngineCheggaaa, len(fileList))
+	syncFiles, err := diff(fileList)
+	if err != nil {
+		return err
 	}
 
-	defer bar.Finish()
+	listDiff(syncFiles)
+
+	return snycFiles(syncFiles)
+}
+
+func readFileList() (mp3files.Files, error) {
+	_, _ = description.Print("Read File List: ")
+	start := time.Now()
+
+	defer fmt.Println()
+
+	fileList, err := mp3files.GetFileList(source)
+	if err != nil {
+		return nil, err
+	}
+
+	duration(start, time.Now(), fmt.Sprintf("%d files found", len(fileList)))
+
+	return fileList, nil
+}
+
+func duration(start, finish time.Time, msg string) {
+	_, _ = description.Printf("%s in %s\n", msg, finish.Sub(start))
+}
+
+func diff(fileList mp3files.Files) (sync.Files, error) {
+	_, _ = description.Println("Analyse files to be synced ...")
+	start := time.Now()
+
+	defer fmt.Println()
+
+	bar := pb.New(pb.EngineCheggaaa, len(fileList))
+
+	var syncFiles sync.Files
 
 	for _, v := range fileList {
 		bar.Increment()
 
 		destinatonFileName, err := transform.Do(destination, v)
 		if err != nil {
-			return err // TODO: add errors to stack and log to file at the end
+			// return nil, err // TODO: add errors to stack and log to file at the end
+			continue
 		}
 
-		if err := sync.Do(v, destinatonFileName, *previewFlag); err != nil {
+		f := sync.File{Source: v, Destination: destinatonFileName}
+
+		inSync, err := f.IsInSync()
+		if err != nil {
+			return nil, err
+		}
+
+		if !inSync {
+			syncFiles = append(syncFiles, f)
+		}
+	}
+
+	bar.Finish()
+
+	duration(start, time.Now(), fmt.Sprintf("%d files analysed", len(fileList)))
+
+	return syncFiles, nil
+}
+
+func listDiff(files sync.Files) {
+	_, _ = listFormat.Printf("Total files to sync: %d\n", len(files))
+
+	t := prompt.Input("Show Diff? [Y/n] ", func(d prompt.Document) []prompt.Suggest {
+		return prompt.FilterHasPrefix([]prompt.Suggest{}, d.GetWordBeforeCursor(), true)
+	})
+
+	if strings.ToLower(t) != "n" {
+		for _, v := range files {
+			_, _ = listFormat.Println(v.Destination)
+		}
+	}
+
+	fmt.Println()
+}
+
+func snycFiles(files sync.Files) error {
+	t := prompt.Input("Start Sync? [Y/n] ", func(d prompt.Document) []prompt.Suggest {
+		return prompt.FilterHasPrefix([]prompt.Suggest{}, d.GetWordBeforeCursor(), true)
+	})
+
+	if strings.ToLower(t) == "n" {
+		return errors.New("aborted by user")
+	}
+
+	_, _ = description.Print("Sync files: ")
+	start := time.Now()
+
+	defer fmt.Println()
+
+	bar := pb.New(pb.EngineCheggaaa, len(files))
+
+	for _, v := range files {
+		bar.Increment()
+
+		if err := sync.Do(v); err != nil {
 			return err // TODO: add errors to stack and log to file at the end
 		}
 	}
 
+	bar.Finish()
+
+	duration(start, time.Now(), fmt.Sprintf("%d files synced", len(files)))
+
 	return nil
 }
 
-func flags() {
-	previewFlag = flag.Bool("p", false, "shows a preview of the files to synced to destination path")
-	flag.Parse()
-}
+// TODO:
+// 1. Check Space needed / left
+// 2. Collect errors / Write to log or display
+// 3. Use Config: source, destination, filters
+// 4. Documentation
+// 5. Tests
