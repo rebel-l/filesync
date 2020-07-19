@@ -24,7 +24,7 @@ const (
 var (
 	errPathNotExisting = errors.New("path does not exist")
 	errFormat          = color.New(color.FgRed)
-	previewFlag        *bool
+	previewFlag        *bool // nolint: gochecknoglobals
 )
 
 func main() {
@@ -85,7 +85,7 @@ func do() error {
 			return err // TODO: add errors to stack and log to file at the end
 		}
 
-		if err := sync.Do(v, destinatonFileName, *previewFlag); err != nil { // TODO: preview should be controlled by script parameter
+		if err := sync.Do(v, destinatonFileName, *previewFlag); err != nil {
 			return err // TODO: add errors to stack and log to file at the end
 		}
 	}
