@@ -12,9 +12,7 @@ const (
 	Extension = ".mp3"
 )
 
-var (
-	ErrFileList = errors.New("failed to read file list")
-)
+var ErrFileList = errors.New("failed to read file list")
 
 func GetFileList(path string) (Files, error) {
 	var list Files
@@ -32,14 +30,8 @@ func GetFileList(path string) (Files, error) {
 			list = append(list, File{Path: dir, Info: info})
 		}
 
-		if i > 50 { // nolint:gomnd
-			// TODO: remove, just temporary
-			return fmt.Errorf("100 files reached")
-		}
-
 		return nil
 	})
-
 	if err != nil {
 		return list, err
 	}

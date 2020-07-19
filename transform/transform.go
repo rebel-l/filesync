@@ -21,9 +21,7 @@ const (
 	frameIDTrack      = "TRCK"
 )
 
-var (
-	ErrParseTag = errors.New("failed to parse mp3 tag")
-)
+var ErrParseTag = errors.New("failed to parse mp3 tag")
 
 func Do(path string, f mp3files.File) (string, error) {
 	name, err := getFileName(f)
@@ -93,6 +91,10 @@ func replaceChars(s string) string {
 		"\\": "",
 		"/":  "",
 		"?":  "",
+		"\"": ",",
+		"'":  ",",
+		"*":  "x",
+		"+":  "x",
 	}
 
 	for k, v := range chars {

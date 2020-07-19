@@ -5,7 +5,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"strings"
 
 	"github.com/fatih/color"
 
@@ -63,8 +62,7 @@ func do() error {
 	}
 
 	fileList, err := mp3files.GetFileList(source)
-	if err != nil && !strings.Contains(err.Error(), "100 files reached") {
-		// TODO: remove temporary check for file limit check
+	if err != nil {
 		return err
 	}
 
