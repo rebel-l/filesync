@@ -11,6 +11,8 @@ import (
 
 	"github.com/fatih/color"
 
+	"github.com/minio/minio/pkg/disk"
+
 	"github.com/rebel-l/go-utils/osutils"
 	"github.com/rebel-l/go-utils/pb"
 	"github.com/rebel-l/mp3sync/mp3files"
@@ -37,8 +39,8 @@ func main() {
 
 	info := color.New(color.FgYellow)
 
-	fmt.Printf("%s %s\n", description.Sprint("Source:"), info.Sprint(source))
-	fmt.Printf("%s %s\n", description.Sprint("Destination:"), info.Sprint(destination))
+	_, _ = description.Printf("Source: %s\n", info.Sprint(source))
+	_, _ = description.Printf("Destination: %s\n", info.Sprint(destination))
 
 	fmt.Println()
 
@@ -73,6 +75,10 @@ func do() error {
 	}
 
 	listDiff(syncFiles)
+
+	if err := diskSpace(syncFiles); err != nil {
+		return err
+	}
 
 	return snycFiles(syncFiles)
 }
@@ -182,8 +188,30 @@ func snycFiles(files sync.Files) error {
 	return nil
 }
 
+func diskSpace(files sync.Files) error {
+	di, err := disk.GetInfo(destination)
+	if err != nil {
+		return err
+	}
+
+	needed := files.SpaceNeeded()
+	left := int64(di.Free) - needed
+
+	_, _ = listFormat.Printf("Free Disk Space: %d\n", di.Free)
+	_, _ = listFormat.Printf("Disk Space Needed: %d\n", needed)
+	_, _ = listFormat.Printf("Disk Space Left: %d\n", left)
+
+	fmt.Println()
+
+	if left < 1 {
+		return fmt.Errorf("not enough free disk space, need %d more bytes", left*-1)
+	}
+
+	return nil
+}
+
 // TODO:
-// 1. Check Space needed / left
+// 1. Check Space needed / left => needs to be tuned
 // 2. Collect errors / Write to log or display
 // 3. Use Config: source, destination, filters
 // 4. Documentation
