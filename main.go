@@ -3,12 +3,14 @@ package main
 
 import (
 	"errors"
+	"flag"
 	"fmt"
 	"strings"
 
 	"github.com/fatih/color"
 
 	"github.com/rebel-l/go-utils/osutils"
+	"github.com/rebel-l/go-utils/pb"
 	"github.com/rebel-l/mp3sync/mp3files"
 	"github.com/rebel-l/mp3sync/sync"
 	"github.com/rebel-l/mp3sync/transform"
@@ -21,11 +23,13 @@ const (
 
 var (
 	errPathNotExisting = errors.New("path does not exist")
-
-	errFormat = color.New(color.FgRed)
+	errFormat          = color.New(color.FgRed)
+	previewFlag        *bool
 )
 
 func main() {
+	flags()
+
 	title := color.New(color.Bold, color.FgGreen)
 	_, _ = title.Println("MP3 sync started ...")
 	fmt.Println()
@@ -64,17 +68,32 @@ func do() error {
 		return err
 	}
 
-	// TODO: progress bar
+	var bar pb.Progressor
+	if *previewFlag {
+		bar = pb.New(pb.EngineBlackhole, len(fileList))
+	} else {
+		bar = pb.New(pb.EngineCheggaaa, len(fileList))
+	}
+
+	defer bar.Finish()
+
 	for _, v := range fileList {
+		bar.Increment()
+
 		destinatonFileName, err := transform.Do(destination, v)
 		if err != nil {
 			return err // TODO: add errors to stack and log to file at the end
 		}
 
-		if err := sync.Do(v, destinatonFileName, true); err != nil { // TODO: preview should be controlled by script parameter
+		if err := sync.Do(v, destinatonFileName, *previewFlag); err != nil { // TODO: preview should be controlled by script parameter
 			return err // TODO: add errors to stack and log to file at the end
 		}
 	}
 
 	return nil
+}
+
+func flags() {
+	previewFlag = flag.Bool("p", false, "shows a preview of the files to synced to destination path")
+	flag.Parse()
 }

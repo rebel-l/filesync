@@ -32,7 +32,7 @@ func GetFileList(path string) (Files, error) {
 			list = append(list, File{Path: dir, Info: info})
 		}
 
-		if i > 500 { // nolint:gomnd
+		if i > 50 { // nolint:gomnd
 			// TODO: remove, just temporary
 			return fmt.Errorf("100 files reached")
 		}
