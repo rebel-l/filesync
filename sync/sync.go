@@ -41,5 +41,9 @@ func Do(source mp3files.File, destination string, preview bool) error {
 		return nil
 	}
 
-	return osutils.CopyFile(source.GetName(), destination)
+	if err := osutils.CopyFile(source.GetName(), destination); err != nil {
+		return err
+	}
+
+	return os.Chtimes(destination, source.Info.ModTime(), source.Info.ModTime())
 }
