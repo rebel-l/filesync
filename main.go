@@ -4,6 +4,8 @@ package main
 import (
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -21,12 +23,16 @@ import (
 )
 
 const (
-	source      = "D:\\CarMusic - Prepare" // TODO: config file
-	destination = "F:\\"                   // TODO: config file
+	source            = "D:\\CarMusic - Prepare" // TODO: config file
+	destination       = "F:\\"                   // TODO: config file
+	logPath           = "logs"
+	logFileNameFormat = "20060102-150405"
 )
 
 var (
 	errPathNotExisting = errors.New("path does not exist")
+	errWriteLog        = errors.New("failed to write log file")
+	errAbortedByUser   = errors.New("aborted by user")
 	errFormat          = color.New(color.FgRed)
 	description        = color.New(color.FgGreen)  // nolint: gochecknoglobals
 	listFormat         = color.New(color.FgHiBlue) // nolint: gochecknoglobals
@@ -69,9 +75,15 @@ func do() error {
 		return err
 	}
 
-	syncFiles, err := diff(fileList)
-	if err != nil {
-		return err
+	var globErr bool
+
+	syncFiles, errs := diff(fileList)
+	if len(errs) > 0 {
+		globErr = true
+
+		if err := showAndLogErrors(errs); err != nil {
+			return err
+		}
 	}
 
 	listDiff(syncFiles)
@@ -80,7 +92,28 @@ func do() error {
 		return err
 	}
 
-	return snycFiles(syncFiles)
+	errs = snycFiles(syncFiles)
+	if len(errs) > 1 {
+		if errors.Is(errs[0], errAbortedByUser) {
+			return errs[0]
+		}
+
+		globErr = true
+
+		logFileName, err := logErrors(errs)
+		if err != nil {
+			return err
+		}
+
+		_, _ = errFormat.Printf("found %d errors\n", len(errs))
+		_, _ = errFormat.Printf("logged errors in file %s\n", logFileName)
+	}
+
+	if globErr {
+		return errors.New("see log for more details")
+	}
+
+	return nil
 }
 
 func readFileList() (mp3files.Files, error) {
@@ -103,7 +136,7 @@ func duration(start, finish time.Time, msg string) {
 	_, _ = description.Printf("%s in %s\n", msg, finish.Sub(start))
 }
 
-func diff(fileList mp3files.Files) (sync.Files, error) {
+func diff(fileList mp3files.Files) (sync.Files, []error) {
 	_, _ = description.Println("Analyse files to be synced ...")
 	start := time.Now()
 
@@ -113,12 +146,14 @@ func diff(fileList mp3files.Files) (sync.Files, error) {
 
 	var syncFiles sync.Files
 
+	var errs []error
+
 	for _, v := range fileList {
 		bar.Increment()
 
 		destinatonFileName, err := transform.Do(destination, v)
 		if err != nil {
-			// return nil, err // TODO: add errors to stack and log to file at the end
+			errs = append(errs, err)
 			continue
 		}
 
@@ -126,7 +161,8 @@ func diff(fileList mp3files.Files) (sync.Files, error) {
 
 		inSync, err := f.IsInSync()
 		if err != nil {
-			return nil, err
+			errs = append(errs, err)
+			continue
 		}
 
 		if !inSync {
@@ -138,7 +174,7 @@ func diff(fileList mp3files.Files) (sync.Files, error) {
 
 	duration(start, time.Now(), fmt.Sprintf("%d files analysed", len(fileList)))
 
-	return syncFiles, nil
+	return syncFiles, errs
 }
 
 func listDiff(files sync.Files) {
@@ -157,13 +193,16 @@ func listDiff(files sync.Files) {
 	fmt.Println()
 }
 
-func snycFiles(files sync.Files) error {
+func snycFiles(files sync.Files) []error {
+	var errs []error
+
 	t := prompt.Input("Start Sync? [Y/n] ", func(d prompt.Document) []prompt.Suggest {
 		return prompt.FilterHasPrefix([]prompt.Suggest{}, d.GetWordBeforeCursor(), true)
 	})
 
 	if strings.ToLower(t) == "n" {
-		return errors.New("aborted by user")
+		errs = append(errs, errAbortedByUser)
+		return errs
 	}
 
 	_, _ = description.Print("Sync files: ")
@@ -177,7 +216,7 @@ func snycFiles(files sync.Files) error {
 		bar.Increment()
 
 		if err := sync.Do(v); err != nil {
-			return err // TODO: add errors to stack and log to file at the end
+			errs = append(errs, err)
 		}
 	}
 
@@ -185,7 +224,7 @@ func snycFiles(files sync.Files) error {
 
 	duration(start, time.Now(), fmt.Sprintf("%d files synced", len(files)))
 
-	return nil
+	return errs
 }
 
 func diskSpace(files sync.Files) error {
@@ -210,9 +249,61 @@ func diskSpace(files sync.Files) error {
 	return nil
 }
 
+func showAndLogErrors(errs []error) error {
+	logFileName, err := logErrors(errs)
+	if err != nil {
+		return err
+	}
+
+	return showErrors(logFileName, errs)
+}
+
+func showErrors(logFileName string, errs []error) error {
+	_, _ = errFormat.Printf("found %d errors\n", len(errs))
+
+	t := prompt.Input("Continue (errored files will be skipped)? [Y/n/s = show files] ",
+		func(d prompt.Document) []prompt.Suggest {
+			return prompt.FilterHasPrefix([]prompt.Suggest{}, d.GetWordBeforeCursor(), true)
+		},
+	)
+
+	_, _ = errFormat.Printf("logged errors in file %s\n", logFileName)
+
+	switch strings.ToLower(t) {
+	case "n":
+		return errAbortedByUser
+	case "s":
+		for _, e := range errs {
+			_, _ = errFormat.Println(e.Error())
+		}
+	}
+
+	return nil
+}
+
+func logErrors(errs []error) (string, error) {
+	logFileName := filepath.Join(".", logPath, fmt.Sprintf("%s.log", time.Now().Format(logFileNameFormat)))
+
+	logFile, err := os.OpenFile(logFileName, os.O_CREATE|os.O_APPEND, 0o600)
+	if err != nil {
+		return logFileName, fmt.Errorf("%w: %v", errWriteLog, err)
+	}
+
+	defer func() {
+		_ = logFile.Close()
+	}()
+
+	for _, e := range errs {
+		if _, err := logFile.WriteString(e.Error() + "\n"); err != nil {
+			return logFileName, fmt.Errorf("%w: %v", errWriteLog, err)
+		}
+	}
+
+	return logFileName, nil
+}
+
 // TODO:
-// 1. Check Space needed / left => needs to be tuned
-// 2. Collect errors / Write to log or display
-// 3. Use Config: source, destination, filters
-// 4. Documentation
-// 5. Tests
+// 2. Use Config: source, destination, filters
+// 3. activate all linters
+// 4. Documentation / Badges: licence, goreport, issues, releases
+// 5. Tests / Badges: build, coverage
