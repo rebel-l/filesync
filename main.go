@@ -1,4 +1,3 @@
-// TODO
 package main
 
 import (
@@ -17,14 +16,14 @@ import (
 
 	"github.com/rebel-l/go-utils/osutils"
 	"github.com/rebel-l/go-utils/pb"
+	"github.com/rebel-l/mp3sync/config"
 	"github.com/rebel-l/mp3sync/mp3files"
 	"github.com/rebel-l/mp3sync/sync"
 	"github.com/rebel-l/mp3sync/transform"
 )
 
 const (
-	source            = "D:\\CarMusic - Prepare" // TODO: config file
-	destination       = "F:\\"                   // TODO: config file
+	configFile        = "config.json"
 	logPath           = "logs"
 	logFileNameFormat = "20060102-150405"
 )
@@ -45,12 +44,18 @@ func main() {
 
 	info := color.New(color.FgYellow)
 
-	_, _ = description.Printf("Source: %s\n", info.Sprint(source))
-	_, _ = description.Printf("Destination: %s\n", info.Sprint(destination))
+	conf, err := config.Load(filepath.Join(".", configFile))
+	if err != nil {
+		_, _ = errFormat.Printf("failed to load config: %v", err)
+		return
+	}
+
+	_, _ = description.Printf("Source: %s\n", info.Sprint(conf.Source))
+	_, _ = description.Printf("Destination: %s\n", info.Sprint(conf.Destination))
 
 	fmt.Println()
 
-	if err := do(); err != nil {
+	if err := do(conf); err != nil {
 		fmt.Println()
 
 		_, _ = errFormat.Printf("MP3 sync finished with error: %v\n", err)
@@ -61,23 +66,23 @@ func main() {
 	}
 }
 
-func do() error {
-	if !osutils.FileOrPathExists(source) {
-		return fmt.Errorf("%w: %s", errPathNotExisting, source)
+func do(conf *config.Config) error {
+	if !osutils.FileOrPathExists(conf.Source) {
+		return fmt.Errorf("%w: %s", errPathNotExisting, conf.Source)
 	}
 
-	if !osutils.FileOrPathExists(destination) {
-		return fmt.Errorf("%w: %s", errPathNotExisting, destination)
+	if !osutils.FileOrPathExists(conf.Destination) {
+		return fmt.Errorf("%w: %s", errPathNotExisting, conf.Destination)
 	}
 
-	fileList, err := readFileList()
+	fileList, err := readFileList(conf.Source)
 	if err != nil {
 		return err
 	}
 
 	var globErr bool
 
-	syncFiles, errs := diff(fileList)
+	syncFiles, errs := diff(fileList, conf.Destination)
 	if len(errs) > 0 {
 		globErr = true
 
@@ -88,7 +93,7 @@ func do() error {
 
 	listDiff(syncFiles)
 
-	if err := diskSpace(syncFiles); err != nil {
+	if err := diskSpace(syncFiles, conf.Destination); err != nil {
 		return err
 	}
 
@@ -116,13 +121,13 @@ func do() error {
 	return nil
 }
 
-func readFileList() (mp3files.Files, error) {
+func readFileList(path string) (mp3files.Files, error) {
 	_, _ = description.Print("Read File List: ")
 	start := time.Now()
 
 	defer fmt.Println()
 
-	fileList, err := mp3files.GetFileList(source)
+	fileList, err := mp3files.GetFileList(path)
 	if err != nil {
 		return nil, err
 	}
@@ -136,7 +141,7 @@ func duration(start, finish time.Time, msg string) {
 	_, _ = description.Printf("%s in %s\n", msg, finish.Sub(start))
 }
 
-func diff(fileList mp3files.Files) (sync.Files, []error) {
+func diff(fileList mp3files.Files, destination string) (sync.Files, []error) {
 	_, _ = description.Println("Analyse files to be synced ...")
 	start := time.Now()
 
@@ -227,7 +232,7 @@ func snycFiles(files sync.Files) []error {
 	return errs
 }
 
-func diskSpace(files sync.Files) error {
+func diskSpace(files sync.Files, destination string) error {
 	di, err := disk.GetInfo(destination)
 	if err != nil {
 		return err
@@ -303,7 +308,7 @@ func logErrors(errs []error) (string, error) {
 }
 
 // TODO:
-// 2. Use Config: source, destination, filters
+// 2. implement filters
 // 3. activate all linters
 // 4. Documentation / Badges: licence, goreport, issues, releases
 // 5. Tests / Badges: build, coverage

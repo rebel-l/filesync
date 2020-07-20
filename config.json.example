@@ -1,0 +1,9 @@
+{
+  "source": "path to source directory",
+  "destination": "path to destination directory",
+  "filter": [
+    "optional",
+    "filter",
+    "strings"
+  ]
+}
