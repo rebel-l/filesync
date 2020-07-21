@@ -97,6 +97,9 @@ func replaceChars(s string) string {
 		"+":  "x",
 		"[":  "(",
 		"]":  ")",
+		">":  "-",
+		"<":  "-",
+		"|":  "-",
 	}
 
 	for k, v := range chars {
