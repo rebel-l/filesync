@@ -26,10 +26,10 @@ var ErrParseTag = errors.New("failed to parse mp3 tag")
 func Do(path string, f mp3files.File) (string, error) {
 	name, err := getFileName(f)
 	if err != nil {
-		return "", fmt.Errorf("%w from %s: %v", ErrParseTag, f.GetName(), err)
+		return "", fmt.Errorf("%w from %s: %v", ErrParseTag, f.Name, err)
 	}
 
-	return filepath.Join(path, getSubFolder(f.Path), name), nil
+	return filepath.Join(path, getSubFolder(f.Name), name), nil
 }
 
 func getSubFolder(path string) string {
@@ -49,7 +49,7 @@ func getSubFolder(path string) string {
 }
 
 func getFileName(f mp3files.File) (string, error) {
-	tag, err := id3v2.Open(f.GetName(), id3v2.Options{Parse: true})
+	tag, err := id3v2.Open(f.Name, id3v2.Options{Parse: true})
 	if err != nil {
 		return "", err
 	}

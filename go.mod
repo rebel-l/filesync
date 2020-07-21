@@ -5,6 +5,7 @@ go 1.14
 require (
 	github.com/bogem/id3v2 v1.2.0
 	github.com/c-bata/go-prompt v0.2.3
+	github.com/dustin/go-humanize v1.0.0
 	github.com/fatih/color v1.9.0
 	github.com/mattn/go-tty v0.0.3 // indirect
 	github.com/minio/minio v0.0.0-20200719013812-30104cb12b13

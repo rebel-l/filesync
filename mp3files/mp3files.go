@@ -26,8 +26,7 @@ func GetFileList(path string) (Files, error) {
 
 		if strings.ToLower(filepath.Ext(info.Name())) == Extension {
 			i++
-			dir, _ := filepath.Split(path)
-			list = append(list, File{Path: dir, Info: info})
+			list = append(list, File{Name: path, Info: info})
 		}
 
 		return nil

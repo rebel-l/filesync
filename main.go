@@ -10,9 +10,11 @@ import (
 
 	"github.com/c-bata/go-prompt"
 
-	"github.com/fatih/color"
+	humanize "github.com/dustin/go-humanize"
 
 	"github.com/minio/minio/pkg/disk"
+
+	"github.com/fatih/color"
 
 	"github.com/rebel-l/go-utils/osutils"
 	"github.com/rebel-l/go-utils/pb"
@@ -162,15 +164,21 @@ func diff(fileList mp3files.Files, destination string) (sync.Files, []error) {
 			continue
 		}
 
-		f := sync.File{Source: v, Destination: destinatonFileName}
+		destFile := mp3files.File{Name: destinatonFileName}
 
-		inSync, err := f.IsInSync()
-		if err != nil {
-			errs = append(errs, err)
-			continue
+		if osutils.FileOrPathExists(destinatonFileName) {
+			var err error
+			destFile.Info, err = os.Lstat(destinatonFileName)
+
+			if err != nil {
+				errs = append(errs, err)
+				continue
+			}
 		}
 
-		if !inSync {
+		f := sync.File{Source: v, Destination: destFile}
+
+		if !f.IsInSync() {
 			syncFiles = append(syncFiles, f)
 		}
 	}
@@ -191,7 +199,7 @@ func listDiff(files sync.Files) {
 
 	if strings.ToLower(t) != "n" {
 		for _, v := range files {
-			_, _ = listFormat.Println(v.Destination)
+			_, _ = listFormat.Println(v.Destination.Name)
 		}
 	}
 
@@ -241,9 +249,19 @@ func diskSpace(files sync.Files, destination string) error {
 	needed := files.SpaceNeeded()
 	left := int64(di.Free) - needed
 
-	_, _ = listFormat.Printf("Free Disk Space: %d\n", di.Free)
-	_, _ = listFormat.Printf("Disk Space Needed: %d\n", needed)
-	_, _ = listFormat.Printf("Disk Space Left: %d\n", left)
+	neededDisplay := humanize.Bytes(uint64(needed))
+	if needed < 0 {
+		neededDisplay = "-" + humanize.Bytes(uint64(needed*-1))
+	}
+
+	leftDisplay := humanize.Bytes(uint64(left))
+	if left < 0 {
+		leftDisplay = "-" + humanize.Bytes(uint64(left*-1))
+	}
+
+	_, _ = listFormat.Printf("Free Disk Space: %s\n", humanize.Bytes(di.Free))
+	_, _ = listFormat.Printf("Disk Space Needed: %s\n", neededDisplay)
+	_, _ = listFormat.Printf("Disk Space Left: %s\n", leftDisplay)
 
 	fmt.Println()
 
