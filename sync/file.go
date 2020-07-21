@@ -3,6 +3,7 @@ package sync
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/rebel-l/go-utils/osutils"
 	"github.com/rebel-l/mp3sync/mp3files"
@@ -27,9 +28,14 @@ func (f File) IsInSync() (bool, error) {
 		return false, nil
 	}
 
-	if !f.Source.Info.ModTime().Equal(destInfo.ModTime()) {
+	if !timeEqual(f.Source.Info.ModTime(), destInfo.ModTime()) {
 		return false, nil
 	}
 
 	return true, nil
+}
+
+func timeEqual(a, b time.Time) bool {
+	d := a.Sub(b)
+	return d.Seconds() > -5 && d.Seconds() < 5
 }
