@@ -77,14 +77,14 @@ func do(conf *config.Config) error {
 		return fmt.Errorf("%w: %s", errPathNotExisting, conf.Destination)
 	}
 
-	fileList, err := readFileList(conf.Source)
+	fileList, err := readFileList(conf.Source, conf.Filter)
 	if err != nil {
 		return err
 	}
 
 	var globErr bool
 
-	syncFiles, errs := diff(fileList, conf.Destination)
+	syncFiles, errs := diff(fileList, conf.Destination, conf.Source)
 	if len(errs) > 0 {
 		globErr = true
 
@@ -123,13 +123,13 @@ func do(conf *config.Config) error {
 	return nil
 }
 
-func readFileList(path string) (mp3files.Files, error) {
+func readFileList(path string, filter config.Filter) (mp3files.Files, error) {
 	_, _ = description.Print("Read File List: ")
 	start := time.Now()
 
 	defer fmt.Println()
 
-	fileList, err := mp3files.GetFileList(path)
+	fileList, err := mp3files.GetFileList(path, filter)
 	if err != nil {
 		return nil, err
 	}
@@ -143,7 +143,7 @@ func duration(start, finish time.Time, msg string) {
 	_, _ = description.Printf("%s in %s\n", msg, finish.Sub(start))
 }
 
-func diff(fileList mp3files.Files, destination string) (sync.Files, []error) {
+func diff(fileList mp3files.Files, destination string, source string) (sync.Files, []error) {
 	_, _ = description.Println("Analyse files to be synced ...")
 	start := time.Now()
 
@@ -158,7 +158,7 @@ func diff(fileList mp3files.Files, destination string) (sync.Files, []error) {
 	for _, v := range fileList {
 		bar.Increment()
 
-		destinatonFileName, err := transform.Do(destination, v)
+		destinatonFileName, err := transform.Do(destination, source, v)
 		if err != nil {
 			errs = append(errs, err)
 			continue
@@ -326,7 +326,6 @@ func logErrors(errs []error) (string, error) {
 }
 
 // TODO:
-// 2. implement filters
 // 3. activate all linters
 // 4. Documentation / Badges: licence, goreport, issues, releases
 // 5. Tests / Badges: build, coverage

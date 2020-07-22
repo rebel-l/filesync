@@ -6,6 +6,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/rebel-l/mp3sync/config"
 )
 
 const (
@@ -14,7 +16,7 @@ const (
 
 var ErrFileList = errors.New("failed to read file list")
 
-func GetFileList(path string) (Files, error) {
+func GetFileList(path string, filter config.Filter) (Files, error) {
 	var list Files
 
 	i := 0
@@ -25,6 +27,10 @@ func GetFileList(path string) (Files, error) {
 		}
 
 		if strings.ToLower(filepath.Ext(info.Name())) == Extension {
+			if filter.Contains(path) {
+				return nil
+			}
+
 			i++
 			list = append(list, File{Name: path, Info: info})
 		}

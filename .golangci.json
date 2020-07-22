@@ -9,8 +9,10 @@
         "enable-all": true,
         "disable": [
             "godox",
+            "gofumpt",
             "golint",
             "goerr113",
+            "scopelint",
             "stylecheck"
         ]
     },

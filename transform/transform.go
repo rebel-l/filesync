@@ -14,30 +14,32 @@ import (
 )
 
 const (
-	defaultSubfolder  = "default"
-	numericSubfolder  = "#"
-	minDirectoryParts = 2
-	frameIDDisk       = "TPOS"
-	frameIDTrack      = "TRCK"
+	defaultSubfolder = "default"
+	numericSubfolder = "#"
+	frameIDDisk      = "TPOS"
+	frameIDTrack     = "TRCK"
 )
 
 var ErrParseTag = errors.New("failed to parse mp3 tag")
 
-func Do(path string, f mp3files.File) (string, error) {
+func Do(destination string, source string, f mp3files.File) (string, error) {
 	name, err := getFileName(f)
 	if err != nil {
 		return "", fmt.Errorf("%w from %s: %v", ErrParseTag, f.Name, err)
 	}
 
-	return filepath.Join(path, getSubFolder(f.Name), name), nil
+	return filepath.Join(destination, getSubFolder(f.Name, source), name), nil
 }
 
-func getSubFolder(path string) string {
+func getSubFolder(fileName string, source string) string {
 	subFolder := defaultSubfolder
 
-	parts := strings.Split(path, string(os.PathSeparator))
-	if len(parts) > minDirectoryParts {
-		subFolder = strings.ToUpper(string(parts[2][0]))
+	source = strings.Replace(fileName, source+string(os.PathSeparator), "", 1)
+
+	parts := strings.Split(source, string(os.PathSeparator))
+
+	if len(parts) > 0 {
+		subFolder = strings.ToUpper(string(parts[0][0]))
 	}
 
 	match, _ := regexp.MatchString("[A-Z]", subFolder)
@@ -90,7 +92,7 @@ func replaceChars(s string) string {
 		":":  ";",
 		"\\": "",
 		"/":  "",
-		"?":  "",
+		"?":  "¿",
 		"\"": ",",
 		"'":  ",",
 		"*":  "x",
