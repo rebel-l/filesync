@@ -73,7 +73,7 @@ func do(conf *config.Config) error {
 		return fmt.Errorf("%w: %s", errPathNotExisting, conf.Destination)
 	}
 
-	fileList, err := readFileList(conf.Source, conf.Filter)
+	fileList, err := readFileList(conf.Source, conf.WhiteList.File, conf.BlackList.File)
 	if err != nil {
 		return err
 	}
@@ -119,13 +119,13 @@ func do(conf *config.Config) error {
 	return nil
 }
 
-func readFileList(path string, filter config.Filter) (mp3files.Files, error) {
+func readFileList(path string, whiteList config.File, blackList config.File) (mp3files.Files, error) {
 	_, _ = description.Print("Read File List: ")
 	start := time.Now()
 
 	defer fmt.Println()
 
-	fileList, err := mp3files.GetFileList(path, filter)
+	fileList, err := mp3files.GetFileList(path, whiteList, blackList)
 	if err != nil {
 		return nil, err
 	}

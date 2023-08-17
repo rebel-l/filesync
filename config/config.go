@@ -3,5 +3,7 @@ package config
 type Config struct {
 	Source      string `json:"source"`
 	Destination string `json:"destination"`
-	Filter      Filter `json:"filter"`
+	// TODO: Whitelist / Blacklist can be managed as map
+	WhiteList Filter `json:"whiteList"`
+	BlackList Filter `json:"blackList"`
 }
