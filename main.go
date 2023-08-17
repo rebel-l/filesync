@@ -9,19 +9,15 @@ import (
 	"time"
 
 	"github.com/c-bata/go-prompt"
-
 	humanize "github.com/dustin/go-humanize"
-
-	"github.com/minio/minio/pkg/disk"
-
 	"github.com/fatih/color"
-
 	"github.com/rebel-l/go-utils/osutils"
 	"github.com/rebel-l/go-utils/pb"
 	"github.com/rebel-l/mp3sync/config"
 	"github.com/rebel-l/mp3sync/mp3files"
 	"github.com/rebel-l/mp3sync/sync"
 	"github.com/rebel-l/mp3sync/transform"
+	"github.com/shirou/gopsutil/v3/disk"
 )
 
 const (
@@ -241,7 +237,7 @@ func snycFiles(files sync.Files) []error {
 }
 
 func diskSpace(files sync.Files, destination string) error {
-	di, err := disk.GetInfo(destination)
+	di, err := disk.Usage(destination)
 	if err != nil {
 		return err
 	}
