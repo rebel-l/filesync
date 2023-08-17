@@ -1,5 +1,5 @@
 .idea
 
-*.bkp
+*.bkp*
 
 config.json

@@ -8,7 +8,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/bogem/id3v2"
+	"github.com/bogem/id3v2/v2"
 
 	"github.com/rebel-l/mp3sync/mp3files"
 )

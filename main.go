@@ -326,6 +326,7 @@ func logErrors(errs []error) (string, error) {
 }
 
 // TODO:
+// 2. delete not matching files
 // 3. activate all linters
 // 4. Documentation / Badges: licence, goreport, issues, releases
 // 5. Tests / Badges: build, coverage
