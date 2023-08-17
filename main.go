@@ -24,6 +24,7 @@ const (
 	configFile        = "config.json"
 	logPath           = "logs"
 	logFileNameFormat = "20060102-150405"
+	MP3Extension      = ".mp3"
 )
 
 var (
@@ -80,7 +81,7 @@ func do(conf *config.Config) error {
 
 	var globErr bool
 
-	syncFiles, errs := diff(fileList, conf.Destination, conf.Source)
+	syncFiles, errs := diff(fileList, conf.Destination, conf.Source, conf.WhiteList.MP3Tag, conf.BlackList.MP3Tag)
 	if len(errs) > 0 {
 		globErr = true
 
@@ -139,7 +140,7 @@ func duration(start, finish time.Time, msg string) {
 	_, _ = description.Printf("%s in %s\n", msg, finish.Sub(start))
 }
 
-func diff(fileList mp3files.Files, destination string, source string) (sync.Files, []error) {
+func diff(fileList mp3files.Files, destination string, source string, whiteList config.Tag, blackList config.Tag) (sync.Files, []error) {
 	_, _ = description.Println("Analyse files to be synced ...")
 	start := time.Now()
 
@@ -154,17 +155,25 @@ func diff(fileList mp3files.Files, destination string, source string) (sync.File
 	for _, v := range fileList {
 		bar.Increment()
 
-		destinatonFileName, err := transform.Do(destination, source, v)
-		if err != nil {
-			errs = append(errs, err)
-			continue
+		destinationFileName := filepath.Join(destination, v.Name) // FIXME v.Name includes full path and doesn't work like this
+		if filepath.Ext(v.Info.Name()) == MP3Extension {
+			var err error
+			destinationFileName, err = transform.Do(destination, source, v, whiteList, blackList)
+			if err != nil {
+				errs = append(errs, err)
+				continue
+			}
+
+			if destinationFileName == "" {
+				continue
+			}
 		}
 
-		destFile := mp3files.File{Name: destinatonFileName}
+		destFile := mp3files.File{Name: destinationFileName}
 
-		if osutils.FileOrPathExists(destinatonFileName) {
+		if osutils.FileOrPathExists(destinationFileName) {
 			var err error
-			destFile.Info, err = os.Lstat(destinatonFileName)
+			destFile.Info, err = os.Lstat(destinationFileName)
 
 			if err != nil {
 				errs = append(errs, err)

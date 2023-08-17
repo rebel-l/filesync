@@ -8,10 +8,6 @@ import (
 	"path/filepath"
 )
 
-const (
-	Extension = ".mp3"
-)
-
 var ErrFileList = errors.New("failed to read file list")
 
 func GetFileList(path string, whitelist config.File, blackList config.File) (Files, error) {

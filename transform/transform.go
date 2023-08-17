@@ -3,12 +3,12 @@ package transform
 import (
 	"errors"
 	"fmt"
+	"github.com/bogem/id3v2/v2"
+	"github.com/rebel-l/mp3sync/config"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
-
-	"github.com/bogem/id3v2/v2"
 
 	"github.com/rebel-l/mp3sync/mp3files"
 )
@@ -22,8 +22,17 @@ const (
 
 var ErrParseTag = errors.New("failed to parse mp3 tag")
 
-func Do(destination string, source string, f mp3files.File) (string, error) {
-	name, err := getFileName(f)
+func Do(destination string, source string, f mp3files.File, whiteList config.Tag, blackList config.Tag) (string, error) {
+	tag, err := loadTag(f) // TODO: should be outside of this package as it is not part of transformer
+	if err != nil {
+		return "", fmt.Errorf("%w from %s: %v", ErrParseTag, f.Name, err)
+	}
+
+	if (len(whiteList) > 0 && !whiteList.Contains(tag)) || (len(blackList) > 0 && blackList.Contains(tag)) {
+		return "", nil
+	}
+
+	name, err := getFileName(tag, filepath.Ext(f.Info.Name()))
 	if err != nil {
 		return "", fmt.Errorf("%w from %s: %v", ErrParseTag, f.Name, err)
 	}
@@ -50,15 +59,7 @@ func getSubFolder(fileName string, source string) string {
 	return subFolder
 }
 
-func getFileName(f mp3files.File) (string, error) {
-	tag, err := id3v2.Open(f.Name, id3v2.Options{Parse: true})
-	if err != nil {
-		return "", err
-	}
-
-	defer func() {
-		_ = tag.Close()
-	}()
+func getFileName(tag *id3v2.Tag, ext string) (string, error) {
 
 	name := tag.Artist()
 
@@ -84,7 +85,7 @@ func getFileName(f mp3files.File) (string, error) {
 		name += " - " + track
 	}
 
-	return replaceChars(name + " - " + tag.Title() + mp3files.Extension), nil
+	return replaceChars(name + " - " + tag.Title() + ext), nil
 }
 
 func replaceChars(s string) string {

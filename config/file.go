@@ -14,7 +14,7 @@ const (
 )
 
 var (
-	possibleKeys = []Key{KeyName, KeyExtension}
+	possibleFileKeys = []Key{KeyName, KeyExtension}
 )
 
 type Key string
@@ -22,14 +22,14 @@ type Key string
 type File map[Key][]string
 
 func (f File) Contains(info os.FileInfo) bool {
-	for _, key := range possibleKeys {
+	for _, key := range possibleFileKeys {
 		patterns, ok := f[key]
 		if !ok {
 			continue
 		}
 
 		for _, pattern := range patterns {
-			if match(key, info, pattern) {
+			if matchFile(key, info, pattern) {
 				return true
 			}
 		}
@@ -38,7 +38,7 @@ func (f File) Contains(info os.FileInfo) bool {
 	return false
 }
 
-func match(key Key, info os.FileInfo, pattern string) bool {
+func matchFile(key Key, info os.FileInfo, pattern string) bool {
 	switch key {
 	case KeyName:
 		return strings.Contains(info.Name(), pattern)

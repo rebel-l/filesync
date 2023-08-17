@@ -1,15 +1,8 @@
 package config
 
-type Filter struct {
-	File `json:"file"`
-}
+// TODO: move to own package filter
 
-//func (f Filter) Contains(content string) bool {
-//	for _, v := range f {
-//		if strings.Contains(content, v) {
-//			return true
-//		}
-//	}
-//
-//	return false
-//}
+type Filter struct {
+	File   `json:"file"`
+	MP3Tag Tag `json:"mp3tag"`
+}
