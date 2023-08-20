@@ -55,6 +55,9 @@ func main() {
 
 	fmt.Println()
 
+	fmt.Println(conf)
+	return
+
 	if err := do(conf); err != nil {
 		fmt.Println()
 
@@ -75,14 +78,14 @@ func do(conf *config.Config) error {
 		return fmt.Errorf("%w: %s", errPathNotExisting, conf.Destination)
 	}
 
-	fileList, err := readFileList(conf.Source, conf.WhiteList.File, conf.BlackList.File)
+	fileList, err := readFileList(conf.Source, conf.Filter)
 	if err != nil {
 		return err
 	}
 
 	var globErr bool
 
-	syncFiles, errs := diff(fileList, conf.Destination, conf.Source, conf.WhiteList.MP3Tag, conf.BlackList.MP3Tag)
+	syncFiles, errs := diff(fileList, conf.Destination, conf.Source, conf.Filter)
 	if len(errs) > 0 {
 		globErr = true
 
@@ -121,13 +124,16 @@ func do(conf *config.Config) error {
 	return nil
 }
 
-func readFileList(path string, whiteList filter.File, blackList filter.File) (mp3files.Files, error) {
+func readFileList(path string, filter filter.BlackWhiteList) (mp3files.Files, error) {
 	_, _ = description.Print("Read File List: ")
 	start := time.Now()
 
 	defer fmt.Println()
 
-	fileList, err := mp3files.GetFileList(path, whiteList, blackList)
+	wl, _ := filter.Whitelist()
+	bl, _ := filter.Blacklist()
+
+	fileList, err := mp3files.GetFileList(path, wl.File, bl.File)
 	if err != nil {
 		return nil, err
 	}
@@ -141,7 +147,7 @@ func duration(start, finish time.Time, msg string) {
 	_, _ = description.Printf("%s in %s\n", msg, finish.Sub(start))
 }
 
-func diff(fileList mp3files.Files, destination string, source string, whiteList filter.MP3Tag, blackList filter.MP3Tag) (sync.Files, []error) {
+func diff(fileList mp3files.Files, destination string, source string, filter filter.BlackWhiteList) (sync.Files, []error) {
 	_, _ = description.Println("Analyse files to be synced ...")
 	start := time.Now()
 
@@ -153,13 +159,16 @@ func diff(fileList mp3files.Files, destination string, source string, whiteList 
 
 	var errs []error
 
+	wl, _ := filter.Whitelist()
+	bl, _ := filter.Blacklist()
+
 	for _, v := range fileList {
 		bar.Increment()
 
 		destinationFileName := filepath.Join(destination, v.Name) // FIXME v.Name includes full path and doesn't work like this
 		if filepath.Ext(v.Info.Name()) == MP3Extension {
 			var err error
-			destinationFileName, err = transform.Do(destination, source, v, whiteList, blackList)
+			destinationFileName, err = transform.Do(destination, source, v, wl.MP3Tag, bl.MP3Tag)
 			if err != nil {
 				errs = append(errs, err)
 				continue
