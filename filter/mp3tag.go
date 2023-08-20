@@ -1,11 +1,9 @@
-package config
+package filter
 
 import (
 	"github.com/bogem/id3v2/v2"
 	"strings"
 )
-
-// TODO: move to own package filter
 
 const (
 	KeyAlbum  = "album"
@@ -17,9 +15,9 @@ var (
 	possibleTagKeys = []Key{KeyAlbum, KeyArtist, KeyGenre}
 )
 
-type Tag map[Key][]string
+type MP3Tag map[Key][]string
 
-func (t Tag) Contains(tag *id3v2.Tag) bool {
+func (t MP3Tag) Contains(tag *id3v2.Tag) bool {
 	for _, key := range possibleTagKeys {
 		patterns, ok := t[key]
 		if !ok {

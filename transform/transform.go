@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/bogem/id3v2/v2"
-	"github.com/rebel-l/mp3sync/config"
+	"github.com/rebel-l/mp3sync/filter"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -22,7 +22,7 @@ const (
 
 var ErrParseTag = errors.New("failed to parse mp3 tag")
 
-func Do(destination string, source string, f mp3files.File, whiteList config.Tag, blackList config.Tag) (string, error) {
+func Do(destination string, source string, f mp3files.File, whiteList filter.MP3Tag, blackList filter.MP3Tag) (string, error) {
 	tag, err := loadTag(f) // TODO: should be outside of this package as it is not part of transformer
 	if err != nil {
 		return "", fmt.Errorf("%w from %s: %v", ErrParseTag, f.Name, err)

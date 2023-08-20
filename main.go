@@ -14,6 +14,7 @@ import (
 	"github.com/rebel-l/go-utils/osutils"
 	"github.com/rebel-l/go-utils/pb"
 	"github.com/rebel-l/mp3sync/config"
+	"github.com/rebel-l/mp3sync/filter"
 	"github.com/rebel-l/mp3sync/mp3files"
 	"github.com/rebel-l/mp3sync/sync"
 	"github.com/rebel-l/mp3sync/transform"
@@ -120,7 +121,7 @@ func do(conf *config.Config) error {
 	return nil
 }
 
-func readFileList(path string, whiteList config.File, blackList config.File) (mp3files.Files, error) {
+func readFileList(path string, whiteList filter.File, blackList filter.File) (mp3files.Files, error) {
 	_, _ = description.Print("Read File List: ")
 	start := time.Now()
 
@@ -140,7 +141,7 @@ func duration(start, finish time.Time, msg string) {
 	_, _ = description.Printf("%s in %s\n", msg, finish.Sub(start))
 }
 
-func diff(fileList mp3files.Files, destination string, source string, whiteList config.Tag, blackList config.Tag) (sync.Files, []error) {
+func diff(fileList mp3files.Files, destination string, source string, whiteList filter.MP3Tag, blackList filter.MP3Tag) (sync.Files, []error) {
 	_, _ = description.Println("Analyse files to be synced ...")
 	start := time.Now()
 

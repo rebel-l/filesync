@@ -3,14 +3,15 @@ package mp3files
 import (
 	"errors"
 	"fmt"
-	"github.com/rebel-l/mp3sync/config"
 	"os"
 	"path/filepath"
+
+	"github.com/rebel-l/mp3sync/filter"
 )
 
 var ErrFileList = errors.New("failed to read file list")
 
-func GetFileList(path string, whitelist config.File, blackList config.File) (Files, error) {
+func GetFileList(path string, whitelist filter.File, blackList filter.File) (Files, error) {
 	var list Files
 
 	err := filepath.Walk(path, func(path string, info os.FileInfo, err error) error {

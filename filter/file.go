@@ -1,12 +1,10 @@
-package config
+package filter
 
 import (
 	"os"
 	"path/filepath"
 	"strings"
 )
-
-// TODO: move to own package filter
 
 const (
 	KeyName      = "name"
