@@ -55,9 +55,6 @@ func main() {
 
 	fmt.Println()
 
-	fmt.Println(conf)
-	return
-
 	if err := do(conf); err != nil {
 		fmt.Println()
 
@@ -124,16 +121,16 @@ func do(conf *config.Config) error {
 	return nil
 }
 
-func readFileList(path string, filter filter.BlackWhiteList) (mp3files.Files, error) {
+func readFileList(path string, confFilter filter.BlackWhiteList) (mp3files.Files, error) {
 	_, _ = description.Print("Read File List: ")
 	start := time.Now()
 
 	defer fmt.Println()
 
-	wl, _ := filter.Whitelist()
-	bl, _ := filter.Blacklist()
+	wl, _ := confFilter.File(filter.KeyWhitelist)
+	bl, _ := confFilter.File(filter.KeyBlacklist)
 
-	fileList, err := mp3files.GetFileList(path, wl.File, bl.File)
+	fileList, err := mp3files.GetFileList(path, wl, bl)
 	if err != nil {
 		return nil, err
 	}
@@ -147,7 +144,7 @@ func duration(start, finish time.Time, msg string) {
 	_, _ = description.Printf("%s in %s\n", msg, finish.Sub(start))
 }
 
-func diff(fileList mp3files.Files, destination string, source string, filter filter.BlackWhiteList) (sync.Files, []error) {
+func diff(fileList mp3files.Files, destination string, source string, confFilter filter.BlackWhiteList) (sync.Files, []error) {
 	_, _ = description.Println("Analyse files to be synced ...")
 	start := time.Now()
 
@@ -159,8 +156,8 @@ func diff(fileList mp3files.Files, destination string, source string, filter fil
 
 	var errs []error
 
-	wl, _ := filter.Whitelist()
-	bl, _ := filter.Blacklist()
+	wl, _ := confFilter.MP3Tag(filter.KeyWhitelist)
+	bl, _ := confFilter.MP3Tag(filter.KeyBlacklist)
 
 	for _, v := range fileList {
 		bar.Increment()
@@ -168,7 +165,7 @@ func diff(fileList mp3files.Files, destination string, source string, filter fil
 		destinationFileName := filepath.Join(destination, v.Name) // FIXME v.Name includes full path and doesn't work like this
 		if filepath.Ext(v.Info.Name()) == MP3Extension {
 			var err error
-			destinationFileName, err = transform.Do(destination, source, v, wl.MP3Tag, bl.MP3Tag)
+			destinationFileName, err = transform.Do(destination, source, v, wl, bl)
 			if err != nil {
 				errs = append(errs, err)
 				continue
