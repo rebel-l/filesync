@@ -67,22 +67,27 @@ func main() {
 }
 
 func do(conf *config.Config) error {
-	if !osutils.FileOrPathExists(conf.Source) {
-		return fmt.Errorf("%w: %s", errPathNotExisting, conf.Source)
-	}
-
-	if !osutils.FileOrPathExists(conf.Destination) {
-		return fmt.Errorf("%w: %s", errPathNotExisting, conf.Destination)
-	}
-
-	fileList, err := readFileList(conf.Source, conf.Filter)
+	// TODO:
+	// 1. move to package and call it in 2 go routines with source (incl. filter) and destination (excl. filter)
+	// 2. transform source
+	// 3. diff file sizes + source / destination and set operations: create / update / delete
+	// 4. ask to list diff?
+	// 5. run operations
+	sourceList, err := readFileList(conf.Source, conf.Filter)
 	if err != nil {
 		return err
 	}
+	fmt.Println("SOURCE", sourceList)
+
+	destinationList, err := readFileList(conf.Destination, nil)
+	if err != nil {
+		return err
+	}
+	fmt.Println("DESTINATION", destinationList)
 
 	var globErr bool
 
-	syncFiles, errs := diff(fileList, conf.Destination, conf.Source, conf.Filter)
+	syncFiles, errs := diff(sourceList, conf.Destination, conf.Source, conf.Filter)
 	if len(errs) > 0 {
 		globErr = true
 
@@ -119,25 +124,6 @@ func do(conf *config.Config) error {
 	}
 
 	return nil
-}
-
-func readFileList(path string, confFilter filter.BlackWhiteList) (mp3files.Files, error) {
-	_, _ = description.Print("Read File List: ")
-	start := time.Now()
-
-	defer fmt.Println()
-
-	wl, _ := confFilter.File(filter.KeyWhitelist)
-	bl, _ := confFilter.File(filter.KeyBlacklist)
-
-	fileList, err := mp3files.GetFileList(path, wl, bl)
-	if err != nil {
-		return nil, err
-	}
-
-	duration(start, time.Now(), fmt.Sprintf("%d files found", len(fileList)))
-
-	return fileList, nil
 }
 
 func duration(start, finish time.Time, msg string) {
