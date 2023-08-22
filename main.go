@@ -14,9 +14,9 @@ import (
 	"github.com/rebel-l/go-utils/osutils"
 	"github.com/rebel-l/go-utils/pb"
 	"github.com/rebel-l/mp3sync/config"
+	"github.com/rebel-l/mp3sync/filesync"
 	"github.com/rebel-l/mp3sync/filter"
 	"github.com/rebel-l/mp3sync/mp3files"
-	"github.com/rebel-l/mp3sync/sync"
 	"github.com/rebel-l/mp3sync/transform"
 	"github.com/shirou/gopsutil/v3/disk"
 )
@@ -130,7 +130,7 @@ func duration(start, finish time.Time, msg string) {
 	_, _ = description.Printf("%s in %s\n", msg, finish.Sub(start))
 }
 
-func diff(fileList mp3files.Files, destination string, source string, confFilter filter.BlackWhiteList) (sync.Files, []error) {
+func diff(fileList mp3files.Files, destination string, source string, confFilter filter.BlackWhiteList) (filesync.Files, []error) {
 	_, _ = description.Println("Analyse files to be synced ...")
 	start := time.Now()
 
@@ -138,7 +138,7 @@ func diff(fileList mp3files.Files, destination string, source string, confFilter
 
 	bar := pb.New(pb.EngineCheggaaa, len(fileList))
 
-	var syncFiles sync.Files
+	var syncFiles filesync.Files
 
 	var errs []error
 
@@ -174,7 +174,7 @@ func diff(fileList mp3files.Files, destination string, source string, confFilter
 			}
 		}
 
-		f := sync.File{Source: v, Destination: destFile}
+		f := filesync.File{Source: v, Destination: destFile}
 
 		if !f.IsInSync() {
 			syncFiles = append(syncFiles, f)
@@ -188,7 +188,7 @@ func diff(fileList mp3files.Files, destination string, source string, confFilter
 	return syncFiles, errs
 }
 
-func listDiff(files sync.Files) {
+func listDiff(files filesync.Files) {
 	_, _ = listFormat.Printf("Total files to sync: %d\n", len(files))
 
 	t := prompt.Input("Show Diff? [Y/n] ", func(d prompt.Document) []prompt.Suggest {
@@ -204,7 +204,7 @@ func listDiff(files sync.Files) {
 	fmt.Println()
 }
 
-func snycFiles(files sync.Files) []error {
+func snycFiles(files filesync.Files) []error {
 	var errs []error
 
 	t := prompt.Input("Start Sync? [Y/n] ", func(d prompt.Document) []prompt.Suggest {
@@ -226,7 +226,7 @@ func snycFiles(files sync.Files) []error {
 	for _, v := range files {
 		bar.Increment()
 
-		if err := sync.Do(v); err != nil {
+		if err := filesync.Do(v); err != nil {
 			errs = append(errs, err)
 		}
 	}
@@ -238,7 +238,7 @@ func snycFiles(files sync.Files) []error {
 	return errs
 }
 
-func diskSpace(files sync.Files, destination string) error {
+func diskSpace(files filesync.Files, destination string) error {
 	di, err := disk.Usage(destination)
 	if err != nil {
 		return err

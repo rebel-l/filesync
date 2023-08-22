@@ -1,4 +1,4 @@
-package sync
+package filesync
 
 type Files []File
 
