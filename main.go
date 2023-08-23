@@ -9,14 +9,12 @@ import (
 	"time"
 
 	"github.com/c-bata/go-prompt"
-	humanize "github.com/dustin/go-humanize"
 	"github.com/fatih/color"
 	"github.com/rebel-l/go-utils/pb"
 	"github.com/rebel-l/mp3sync/config"
 	"github.com/rebel-l/mp3sync/filesync"
 	"github.com/rebel-l/mp3sync/filter"
 	"github.com/rebel-l/mp3sync/transform"
-	"github.com/shirou/gopsutil/v3/disk"
 )
 
 const (
@@ -109,15 +107,21 @@ func do(conf *config.Config) error {
 	// 4. ask to list diff?
 	listDiff(syncFiles)
 
-	return nil
-
-	// TODO:
-	// 5. run operations
-
-	if err := diskSpace(syncFiles, conf.Destination); err != nil {
+	// 5. show disk space
+	ds, err := filesync.CalculateDiskSpace(syncFiles, conf.Destination)
+	if err != nil {
 		return err
 	}
 
+	_, _ = listFormat.Printf("Free Disk Space: %s\n", ds.Free)
+	_, _ = listFormat.Printf("Disk Space Needed: %s\n", ds.Needed)
+	_, _ = listFormat.Printf("Disk Space Left: %s\n", ds.Left)
+
+	fmt.Println()
+
+	return nil
+
+	// 6. run operations
 	errs = snycFiles(syncFiles)
 	if len(errs) > 1 {
 		if errors.Is(errs[0], errAbortedByUser) {
@@ -178,38 +182,6 @@ func snycFiles(files filesync.Files) []error {
 	duration(start, time.Now(), fmt.Sprintf("%d files synced", len(files)))
 
 	return errs
-}
-
-func diskSpace(files filesync.Files, destination string) error {
-	di, err := disk.Usage(destination)
-	if err != nil {
-		return err
-	}
-
-	needed := files.SpaceNeeded()
-	left := int64(di.Free) - needed
-
-	neededDisplay := humanize.Bytes(uint64(needed))
-	if needed < 0 {
-		neededDisplay = "-" + humanize.Bytes(uint64(needed*-1))
-	}
-
-	leftDisplay := humanize.Bytes(uint64(left))
-	if left < 0 {
-		leftDisplay = "-" + humanize.Bytes(uint64(left*-1))
-	}
-
-	_, _ = listFormat.Printf("Free Disk Space: %s\n", humanize.Bytes(di.Free))
-	_, _ = listFormat.Printf("Disk Space Needed: %s\n", neededDisplay)
-	_, _ = listFormat.Printf("Disk Space Left: %s\n", leftDisplay)
-
-	fmt.Println()
-
-	if left < 1 {
-		return fmt.Errorf("not enough free disk space, need %d more bytes", left*-1)
-	}
-
-	return nil
 }
 
 func showAndLogErrors(errs []error) error {
