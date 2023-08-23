@@ -67,27 +67,33 @@ func main() {
 }
 
 func do(conf *config.Config) error {
+	// 1. read file list from source (incl. filter) and destination (excl. filter)
+	sourceChannel := make(chan FileChannel)
+	destinationChannel := make(chan FileChannel)
+	go readFileList(sourceChannel, conf.Source, conf.Filter)
+	go readFileList(destinationChannel, conf.Destination, nil)
+
+	sourceResult := <-sourceChannel
+	if sourceResult.Err != nil {
+		return sourceResult.Err
+	}
+	fmt.Println("SOURCE", len(sourceResult.Files)) // TODO: remove
+
+	destinationResult := <-destinationChannel
+	if destinationResult.Err != nil {
+		return destinationResult.Err
+	}
+	fmt.Println("DESTINATION", len(destinationResult.Files)) // TODO: remove
+
 	// TODO:
-	// 1. move to package and call it in 2 go routines with source (incl. filter) and destination (excl. filter)
 	// 2. transform source
 	// 3. diff file sizes + source / destination and set operations: create / update / delete
 	// 4. ask to list diff?
 	// 5. run operations
-	sourceList, err := readFileList(conf.Source, conf.Filter)
-	if err != nil {
-		return err
-	}
-	fmt.Println("SOURCE", sourceList)
-
-	destinationList, err := readFileList(conf.Destination, nil)
-	if err != nil {
-		return err
-	}
-	fmt.Println("DESTINATION", destinationList)
 
 	var globErr bool
 
-	syncFiles, errs := diff(sourceList, conf.Destination, conf.Source, conf.Filter)
+	syncFiles, errs := diff(sourceResult.Files, conf.Destination, conf.Source, conf.Filter)
 	if len(errs) > 0 {
 		globErr = true
 
