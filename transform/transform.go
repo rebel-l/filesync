@@ -3,14 +3,14 @@ package transform
 import (
 	"errors"
 	"fmt"
-	"github.com/bogem/id3v2/v2"
-	"github.com/rebel-l/mp3sync/filter"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 
+	"github.com/bogem/id3v2/v2"
 	"github.com/rebel-l/go-utils/pb"
+	"github.com/rebel-l/mp3sync/filter"
 	"github.com/rebel-l/mp3sync/mp3files"
 )
 
@@ -26,7 +26,7 @@ var ErrParseTag = errors.New("failed to parse mp3 tag")
 
 func Do(fileList mp3files.Files, destination string, source string, whiteList filter.MP3Tag, blackList filter.MP3Tag) (mp3files.Files, []error) {
 	var errs []error
-	var newFiles mp3files.Files
+	newFiles := make(mp3files.Files)
 
 	bar := pb.New(pb.EngineCheggaaa, len(fileList))
 	defer bar.Finish()
@@ -43,7 +43,7 @@ func Do(fileList mp3files.Files, destination string, source string, whiteList fi
 			}
 
 			if v.Name != "" {
-				newFiles = append(newFiles, v)
+				newFiles[v.Name] = v
 			}
 		}
 	}

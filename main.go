@@ -11,12 +11,10 @@ import (
 	"github.com/c-bata/go-prompt"
 	humanize "github.com/dustin/go-humanize"
 	"github.com/fatih/color"
-	"github.com/rebel-l/go-utils/osutils"
 	"github.com/rebel-l/go-utils/pb"
 	"github.com/rebel-l/mp3sync/config"
 	"github.com/rebel-l/mp3sync/filesync"
 	"github.com/rebel-l/mp3sync/filter"
-	"github.com/rebel-l/mp3sync/mp3files"
 	"github.com/rebel-l/mp3sync/transform"
 	"github.com/shirou/gopsutil/v3/disk"
 )
@@ -103,23 +101,18 @@ func do(conf *config.Config) error {
 	}
 
 	duration(start, time.Now(), fmt.Sprintf("%d files filtered and transformed result in %d files", len(sourceResult.Files), len(transformedSource)))
+	fmt.Println()
+
+	// 3. diff file sizes + source / destination and set operations: copy / delete
+	syncFiles := diff(transformedSource, destinationResult.Files)
+
+	// 4. ask to list diff?
+	listDiff(syncFiles)
+
 	return nil
 
 	// TODO:
-	// 3. diff file sizes + source / destination and set operations: copy / delete
-	// 4. ask to list diff?
 	// 5. run operations
-
-	syncFiles, errs := diff(sourceResult.Files, conf.Destination, conf.Source, conf.Filter)
-	if len(errs) > 0 {
-		globErr = true
-
-		if err := showAndLogErrors(errs); err != nil {
-			return err
-		}
-	}
-
-	listDiff(syncFiles)
 
 	if err := diskSpace(syncFiles, conf.Destination); err != nil {
 		return err
@@ -151,77 +144,6 @@ func do(conf *config.Config) error {
 
 func duration(start, finish time.Time, msg string) {
 	_, _ = description.Printf("%s in %s\n", msg, finish.Sub(start))
-}
-
-func diff(fileList mp3files.Files, destination string, source string, confFilter filter.BlackWhiteList) (filesync.Files, []error) {
-	_, _ = description.Println("Analyse files to be synced ...")
-	start := time.Now()
-
-	defer fmt.Println()
-
-	bar := pb.New(pb.EngineCheggaaa, len(fileList))
-
-	var syncFiles filesync.Files
-
-	var errs []error
-
-	for _, v := range fileList {
-		bar.Increment()
-
-		destinationFileName := filepath.Join(destination, v.Name) // FIXME v.Name includes full path and doesn't work like this
-		//if filepath.Ext(v.Info.Name()) == MP3Extension {
-		//	var err error
-		//	destinationFileName, err = transform.Do(destination, source, v, wl, bl)
-		//	if err != nil {
-		//		errs = append(errs, err)
-		//		continue
-		//	}
-		//
-		//	if destinationFileName == "" {
-		//		continue
-		//	}
-		//}
-
-		destFile := mp3files.File{Name: destinationFileName}
-
-		if osutils.FileOrPathExists(destinationFileName) {
-			var err error
-			destFile.Info, err = os.Lstat(destinationFileName)
-
-			if err != nil {
-				errs = append(errs, err)
-				continue
-			}
-		}
-
-		f := filesync.File{Source: v, Destination: destFile}
-
-		if !f.IsInSync() {
-			syncFiles = append(syncFiles, f)
-		}
-	}
-
-	bar.Finish()
-
-	duration(start, time.Now(), fmt.Sprintf("%d files analysed", len(fileList)))
-
-	return syncFiles, errs
-}
-
-func listDiff(files filesync.Files) {
-	_, _ = listFormat.Printf("Total files to sync: %d\n", len(files))
-
-	t := prompt.Input("Show Diff? [Y/n] ", func(d prompt.Document) []prompt.Suggest {
-		return prompt.FilterHasPrefix([]prompt.Suggest{}, d.GetWordBeforeCursor(), true)
-	})
-
-	if strings.ToLower(t) != "n" {
-		for _, v := range files {
-			_, _ = listFormat.Println(v.Destination.Name)
-		}
-	}
-
-	fmt.Println()
 }
 
 func snycFiles(files filesync.Files) []error {

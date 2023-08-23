@@ -1,3 +1,3 @@
 package mp3files
 
-type Files []File
+type Files map[string]File
