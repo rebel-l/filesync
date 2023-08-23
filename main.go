@@ -25,7 +25,6 @@ const (
 	configFile        = "config.json"
 	logPath           = "logs"
 	logFileNameFormat = "20060102-150405"
-	MP3Extension      = ".mp3"
 )
 
 var (
@@ -77,23 +76,39 @@ func do(conf *config.Config) error {
 	if sourceResult.Err != nil {
 		return sourceResult.Err
 	}
-	fmt.Println("SOURCE", len(sourceResult.Files)) // TODO: remove
 
 	destinationResult := <-destinationChannel
 	if destinationResult.Err != nil {
 		return destinationResult.Err
 	}
-	fmt.Println("DESTINATION", len(destinationResult.Files)) // TODO: remove
 
 	fmt.Println()
 
+	var globErr bool
+
+	// 2. filter & transform source
+	_, _ = description.Println("Filter & transform files to be synced ...")
+	start := time.Now()
+
+	wl, _ := conf.Filter.MP3Tag(filter.KeyWhitelist)
+	bl, _ := conf.Filter.MP3Tag(filter.KeyBlacklist)
+
+	transformedSource, errs := transform.Do(sourceResult.Files, conf.Destination, conf.Source, wl, bl)
+	if len(errs) > 0 {
+		globErr = true
+
+		if err := showAndLogErrors(errs); err != nil {
+			return err
+		}
+	}
+
+	duration(start, time.Now(), fmt.Sprintf("%d files filtered and transformed result in %d files", len(sourceResult.Files), len(transformedSource)))
+	return nil
+
 	// TODO:
-	// 2. transform source
-	// 3. diff file sizes + source / destination and set operations: create / update / delete
+	// 3. diff file sizes + source / destination and set operations: copy / delete
 	// 4. ask to list diff?
 	// 5. run operations
-
-	var globErr bool
 
 	syncFiles, errs := diff(sourceResult.Files, conf.Destination, conf.Source, conf.Filter)
 	if len(errs) > 0 {
@@ -150,25 +165,22 @@ func diff(fileList mp3files.Files, destination string, source string, confFilter
 
 	var errs []error
 
-	wl, _ := confFilter.MP3Tag(filter.KeyWhitelist)
-	bl, _ := confFilter.MP3Tag(filter.KeyBlacklist)
-
 	for _, v := range fileList {
 		bar.Increment()
 
 		destinationFileName := filepath.Join(destination, v.Name) // FIXME v.Name includes full path and doesn't work like this
-		if filepath.Ext(v.Info.Name()) == MP3Extension {
-			var err error
-			destinationFileName, err = transform.Do(destination, source, v, wl, bl)
-			if err != nil {
-				errs = append(errs, err)
-				continue
-			}
-
-			if destinationFileName == "" {
-				continue
-			}
-		}
+		//if filepath.Ext(v.Info.Name()) == MP3Extension {
+		//	var err error
+		//	destinationFileName, err = transform.Do(destination, source, v, wl, bl)
+		//	if err != nil {
+		//		errs = append(errs, err)
+		//		continue
+		//	}
+		//
+		//	if destinationFileName == "" {
+		//		continue
+		//	}
+		//}
 
 		destFile := mp3files.File{Name: destinationFileName}
 

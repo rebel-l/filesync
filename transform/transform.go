@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/rebel-l/go-utils/pb"
 	"github.com/rebel-l/mp3sync/mp3files"
 )
 
@@ -18,11 +19,39 @@ const (
 	numericSubfolder = "#"
 	frameIDDisk      = "TPOS"
 	frameIDTrack     = "TRCK"
+	MP3Extension     = ".mp3"
 )
 
 var ErrParseTag = errors.New("failed to parse mp3 tag")
 
-func Do(destination string, source string, f mp3files.File, whiteList filter.MP3Tag, blackList filter.MP3Tag) (string, error) {
+func Do(fileList mp3files.Files, destination string, source string, whiteList filter.MP3Tag, blackList filter.MP3Tag) (mp3files.Files, []error) {
+	var errs []error
+	var newFiles mp3files.Files
+
+	bar := pb.New(pb.EngineCheggaaa, len(fileList))
+	defer bar.Finish()
+
+	for _, v := range fileList {
+		bar.Increment()
+
+		if filepath.Ext(v.Info.Name()) == MP3Extension {
+			var err error
+			v.Name, err = transform(destination, source, v, whiteList, blackList)
+			if err != nil {
+				errs = append(errs, err)
+				continue
+			}
+
+			if v.Name != "" {
+				newFiles = append(newFiles, v)
+			}
+		}
+	}
+
+	return newFiles, errs
+}
+
+func transform(destination string, source string, f mp3files.File, whiteList filter.MP3Tag, blackList filter.MP3Tag) (string, error) {
 	tag, err := loadTag(f) // TODO: should be outside of this package as it is not part of transformer
 	if err != nil {
 		return "", fmt.Errorf("%w from %s: %v", ErrParseTag, f.Name, err)
