@@ -20,10 +20,8 @@ func readFileList(res chan FileChannel, path string, confFilter filter.BlackWhit
 		return
 	}
 
-	_, _ = description.Print("Read File List: ")
+	_, _ = description.Printf("Read File List from %s\n", path)
 	start := time.Now()
-
-	defer fmt.Println()
 
 	wl := make(filter.File)
 	bl := make(filter.File)

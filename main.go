@@ -85,6 +85,8 @@ func do(conf *config.Config) error {
 	}
 	fmt.Println("DESTINATION", len(destinationResult.Files)) // TODO: remove
 
+	fmt.Println()
+
 	// TODO:
 	// 2. transform source
 	// 3. diff file sizes + source / destination and set operations: create / update / delete
