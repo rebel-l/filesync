@@ -10,7 +10,6 @@ import (
 
 	"github.com/c-bata/go-prompt"
 	"github.com/fatih/color"
-	"github.com/rebel-l/go-utils/pb"
 	"github.com/rebel-l/mp3sync/config"
 	"github.com/rebel-l/mp3sync/filesync"
 	"github.com/rebel-l/mp3sync/filter"
@@ -119,10 +118,21 @@ func do(conf *config.Config) error {
 
 	fmt.Println()
 
-	return nil
-
 	// 6. run operations
-	errs = snycFiles(syncFiles)
+	t := prompt.Input("Start Sync? [Y/n] ", func(d prompt.Document) []prompt.Suggest {
+		return prompt.FilterHasPrefix([]prompt.Suggest{}, d.GetWordBeforeCursor(), true)
+	})
+
+	if strings.ToLower(t) == "n" {
+		return errAbortedByUser
+	}
+
+	_, _ = description.Print("Sync files: ")
+
+	start = time.Now()
+
+	errs = filesync.Do(syncFiles)
+
 	if len(errs) > 1 {
 		if errors.Is(errs[0], errAbortedByUser) {
 			return errs[0]
@@ -143,45 +153,13 @@ func do(conf *config.Config) error {
 		return errors.New("see log for more details")
 	}
 
+	duration(start, time.Now(), fmt.Sprintf("%d files synced", len(syncFiles)))
+
 	return nil
 }
 
 func duration(start, finish time.Time, msg string) {
 	_, _ = description.Printf("%s in %s\n", msg, finish.Sub(start))
-}
-
-func snycFiles(files filesync.Files) []error {
-	var errs []error
-
-	t := prompt.Input("Start Sync? [Y/n] ", func(d prompt.Document) []prompt.Suggest {
-		return prompt.FilterHasPrefix([]prompt.Suggest{}, d.GetWordBeforeCursor(), true)
-	})
-
-	if strings.ToLower(t) == "n" {
-		errs = append(errs, errAbortedByUser)
-		return errs
-	}
-
-	_, _ = description.Print("Sync files: ")
-	start := time.Now()
-
-	defer fmt.Println()
-
-	bar := pb.New(pb.EngineCheggaaa, len(files))
-
-	for _, v := range files {
-		bar.Increment()
-
-		if err := filesync.Do(v); err != nil {
-			errs = append(errs, err)
-		}
-	}
-
-	bar.Finish()
-
-	duration(start, time.Now(), fmt.Sprintf("%d files synced", len(files)))
-
-	return errs
 }
 
 func showAndLogErrors(errs []error) error {

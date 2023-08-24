@@ -1,31 +1,33 @@
 package filesync
 
 import (
-	"os"
 	"time"
+
+	"github.com/rebel-l/mp3sync/mp3files"
 )
 
 const (
-	OperationCopy   = "copy"
+	OperationCreate = "create"
+	OperationUpdate = "update"
 	OperationDelete = "delete"
 )
 
 type File struct {
-	Source      os.FileInfo
-	Destination os.FileInfo
+	Source      mp3files.File
+	Destination mp3files.File
 	Operation   string
 }
 
 func (f File) IsInSync() bool {
-	if f.Source == nil || f.Destination == nil {
+	if f.Source.Info == nil || f.Destination.Info == nil {
 		return false
 	}
 
-	if f.Source.Size() != f.Destination.Size() {
+	if f.Source.Info.Size() != f.Destination.Info.Size() {
 		return false
 	}
 
-	if !timeEqual(f.Source.ModTime(), f.Destination.ModTime()) { // TODO: ensure destination file has same ModeTime as source file or ignore this
+	if !timeEqual(f.Source.Info.ModTime(), f.Destination.Info.ModTime()) {
 		return false
 	}
 

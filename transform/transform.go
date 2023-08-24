@@ -36,14 +36,14 @@ func Do(fileList mp3files.Files, destination string, source string, whiteList fi
 
 		if filepath.Ext(v.Info.Name()) == MP3Extension {
 			var err error
-			v.Name, err = transform(destination, source, v, whiteList, blackList)
+			destinationName, err := transform(destination, source, v, whiteList, blackList)
 			if err != nil {
 				errs = append(errs, err)
 				continue
 			}
 
-			if v.Name != "" {
-				newFiles[v.Name] = v
+			if destinationName != "" {
+				newFiles[destinationName] = v
 			}
 		}
 	}

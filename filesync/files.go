@@ -14,11 +14,13 @@ func (f Files) SpaceNeeded() int64 {
 
 	for _, v := range f {
 		switch v.Operation {
-		case OperationCopy:
-			space += v.Source.Size()
+		case OperationCreate:
+			space += v.Source.Info.Size() - v.Destination.Info.Size()
+		case OperationUpdate:
+			space += v.Source.Info.Size()
 			break
 		case OperationDelete:
-			space -= v.Destination.Size()
+			space -= v.Destination.Info.Size()
 		}
 	}
 

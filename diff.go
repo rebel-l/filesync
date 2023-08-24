@@ -23,18 +23,18 @@ func diff(source, destination mp3files.Files) filesync.Files {
 	bar := pb.New(pb.EngineCheggaaa, count)
 	defer bar.Finish()
 
-	for _, s := range source {
+	for destinationName, s := range source {
 		bar.Increment()
-		d, ok := destination[s.Name]
+		d, ok := destination[destinationName]
 
 		// if destination doesn't exist just add it
 		if !ok {
-			syncFiles = append(syncFiles, filesync.File{Source: s.Info, Destination: filesync.FileInfo{FileName: s.Name}, Operation: filesync.OperationCopy})
+			syncFiles = append(syncFiles, filesync.File{Source: s, Destination: mp3files.File{Name: destinationName}, Operation: filesync.OperationCreate})
 			continue
 		}
 
 		// if destination exists it must be out of sync
-		newFile := filesync.File{Source: s.Info, Destination: d.Info, Operation: filesync.OperationCopy}
+		newFile := filesync.File{Source: s, Destination: d, Operation: filesync.OperationUpdate}
 		if !newFile.IsInSync() {
 			syncFiles = append(syncFiles, newFile)
 		}
@@ -45,7 +45,7 @@ func diff(source, destination mp3files.Files) filesync.Files {
 		// files not in source needs to be deleted
 		_, ok := source[d.Name]
 		if !ok {
-			syncFiles = append(syncFiles, filesync.File{Destination: d.Info, Operation: filesync.OperationDelete})
+			syncFiles = append(syncFiles, filesync.File{Destination: d, Operation: filesync.OperationDelete})
 		}
 	}
 
@@ -63,7 +63,7 @@ func listDiff(files filesync.Files) {
 
 	if strings.ToLower(t) != "n" {
 		for _, v := range files {
-			_, _ = listFormat.Printf("%s: %s\n", v.Operation, v.Destination.Name())
+			_, _ = listFormat.Printf("%s: %q\n", v.Operation, v.Destination.Name)
 		}
 	}
 
