@@ -15,9 +15,9 @@ func (f Files) SpaceNeeded() int64 {
 	for _, v := range f {
 		switch v.Operation {
 		case OperationCreate:
-			space += v.Source.Info.Size() - v.Destination.Info.Size()
-		case OperationUpdate:
 			space += v.Source.Info.Size()
+		case OperationUpdate:
+			space += v.Source.Info.Size() - v.Destination.Info.Size()
 			break
 		case OperationDelete:
 			space -= v.Destination.Info.Size()
